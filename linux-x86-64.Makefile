@@ -1,7 +1,7 @@
 SONAME=libavbin.so.$(AVBIN_VERSION)
 LIBNAME=$(OUTDIR)/$(SONAME)
 
-CFLAGS += -fPIC -O3
+CFLAGS += -fPIC -O3 -g
 LDFLAGS += -shared -soname $(SONAME) -Bsymbolic -zmuldefs
 
 STATIC_LIBS = -whole-archive \

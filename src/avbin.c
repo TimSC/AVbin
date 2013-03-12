@@ -184,9 +184,20 @@ AVbinFile *avbin_open_filename(const char *filename) { return avbin_open_filenam
 
 AVbinFile *avbin_open_filename_with_format(const char *filename, char* format)
 {
-    AVbinFile *file = malloc(sizeof *file);
-    AVInputFormat *avformat = NULL;
-    if (format) avformat = av_find_input_format(format);
+	AVbinFile *file = malloc(sizeof *file);
+	AVInputFormat *avformat = NULL;
+
+    if(format==NULL)
+	{    
+		AVProbeData probe_data;
+		probe_data.filename = filename;
+		probe_data.buf_size = 4096;
+		probe_data.buf = malloc(probe_data.buf_size);
+		avformat = av_probe_input_format(&probe_data, 1);
+		free(probe_data.buf);
+    }
+	else
+		avformat = av_find_input_format(format);
 
     file->context = NULL;    // Zero-initialize
     if (avformat_open_input(&file->context, filename, avformat, NULL) != 0)
