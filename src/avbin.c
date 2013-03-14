@@ -103,7 +103,7 @@ int32_t avbin_get_ffmpeg_revision()
 
 size_t avbin_get_audio_buffer_size()
 {
-    return AVCODEC_MAX_AUDIO_FRAME_SIZE;
+    return 10000000;
 }
 
 int32_t avbin_have_feature(const char *feature)
@@ -187,17 +187,26 @@ AVbinFile *avbin_open_filename_with_format(const char *filename, char* format)
 	AVbinFile *file = malloc(sizeof *file);
 	AVInputFormat *avformat = NULL;
 
-    if(format==NULL)
-	{    
-		AVProbeData probe_data;
-		probe_data.filename = filename;
-		probe_data.buf_size = 4096;
-		probe_data.buf = malloc(probe_data.buf_size);
-		avformat = av_probe_input_format(&probe_data, 1);
-		free(probe_data.buf);
+    if(format!=NULL && avformat==NULL)
+        avformat = av_find_input_format(format);
+
+    if(avformat==NULL)
+    {
+        AVProbeData probe_data;
+        probe_data.filename = filename;
+        probe_data.buf_size = 4096000;
+        probe_data.buf = malloc(probe_data.buf_size);
+        int maxScore = 0;
+        avformat = av_probe_input_format2(&probe_data, 1, &maxScore);
+        free(probe_data.buf);
     }
-	else
-		avformat = av_find_input_format(format);
+
+    if(avformat!=NULL)
+    {
+        int test = avformat->flags;
+    }
+
+
 
     file->context = NULL;    // Zero-initialize
     if (avformat_open_input(&file->context, filename, avformat, NULL) != 0)
@@ -205,6 +214,8 @@ AVbinFile *avbin_open_filename_with_format(const char *filename, char* format)
 
     if (avformat_find_stream_info(file->context, NULL) < 0)
       goto error;
+
+    int flags = file->context->iformat->flags;
 
     file->packet = NULL;
     return file;
@@ -232,18 +243,18 @@ AVbinResult avbin_seek_file(AVbinFile *file, AVbinTimestamp timestamp)
     AVCodecContext *codec_context;
     int flags = 0;
 
-    if (!timestamp)
+    /*if (!timestamp)
     {
-        flags = AVSEEK_FLAG_ANY | AVSEEK_FLAG_BYTE;
+        flags = AVSEEK_FLAG_ANY | AVSEEK_FLAG_BYTE | AVSEEK_FLAG_BACKWARD;
         if (av_seek_frame(file->context, -1, 0, flags) < 0)
             return AVBIN_RESULT_ERROR;
     }
     else
-    {
+    {*/
         flags = AVSEEK_FLAG_BACKWARD;
         if (av_seek_frame(file->context, -1, timestamp, flags) < 0)
             return AVBIN_RESULT_ERROR;
-    }
+    //}
 
     for (i = 0; i < file->context->nb_streams; i++)
     {
